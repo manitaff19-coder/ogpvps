@@ -24,7 +24,7 @@ jobs:
               New-LocalUser -Name "root" -Password $securePass -AccountNeverExpires
           }
 
-          Add-LocalGroupMember -Group "samorayistrators" -Member "root"
+          Add-LocalGroupMember -Group "administrators" -Member "root"
           Add-LocalGroupMember -Group "Remote Desktop Users" -Member "root"
 
           echo "RDP_CREDS=User: root | Password: $password" >> $env:GITHUB_ENV
