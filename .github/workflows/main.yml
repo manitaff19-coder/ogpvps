@@ -1,6 +1,12 @@
-name: VPS
+name: Secure-Temp-VPS
 on:
   workflow_dispatch:
+    inputs:
+      ssh_password:
+        description: 'SSH Password for the "runner" user (e.g., strong_pass_123)'
+        required: true
+        default: 'PleaseSetAPassword'
+
 jobs:
   secure-vps:
     runs-on: ubuntu-20.04
@@ -12,10 +18,16 @@ jobs:
           sudo apt install -y openssh-server
           sudo systemctl enable ssh
           sudo systemctl start ssh
-          echo "root:samoray" | sudo chpasswd
-          echo "PermitRootLogin yes" | sudo tee -a /etc/ssh/sshd_config
+          
+          user_name="runner"
+          user_pass="${{ github.event.inputs.ssh_password }}"
+          echo "$user_name:$user_pass" | sudo chpasswd
+          
+          sudo sed -i 's/^PermitRootLogin prohibit-password/PermitRootLogin no/' /etc/ssh/sshd_config
+          sudo sed -i 's/^PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config
+          
           sudo service ssh restart
-          echo "✅ SSH user: root | pass: samoray"
+          echo "✅ SSH user: $user_name | pass: ${{ github.event.inputs.ssh_password }}"
 
       - name: Install Tailscale
         run: |
@@ -28,12 +40,13 @@ jobs:
       - name: Verify SSH Access
         run: |
           echo "Tailscale VPS ready!"
-          echo "IP: $env:TAILSCALE_IP"
-          echo "User: root"
-          echo "Pass: samoray"
+          echo "IP: ${{ env.TAILSCALE_IP }}"
+          echo "User: runner"
+          echo "Pass: ${{ github.event.inputs.ssh_password }}"
 
       - name: Keep VPS Alive
         run: |
+          echo "Running maximum 360 minutes..."
           while true; do
             echo "[$(date)] VPS running..."
             sleep 300
